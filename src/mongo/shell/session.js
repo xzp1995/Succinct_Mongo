@@ -208,7 +208,6 @@ var {
         }
 
         function prepareCommandRequest(driverSession, cmdObj) {
-            // print("prepareCommandRequest called");
             if (serverSupports(kWireVersionSupportingLogicalSession) &&
                 // Always attach sessionId from explicit sessions.
                 (driverSession._isExplicit ||
@@ -292,7 +291,6 @@ var {
         }
 
         function processCommandResponse(driverSession, res) {
-            // print("processCommandResponse called");
             if (res.hasOwnProperty("operationTime")) {
                 driverSession.advanceOperationTime(res.operationTime);
             }
@@ -320,13 +318,8 @@ var {
 
         function runClientFunctionWithRetries(
             driverSession, cmdObj, clientFunction, clientFunctionArguments) {
-            // print("runClientFunctionWithRetries called");
             let cmdName = Object.keys(cmdObj)[0];
-            // print("cmdName: ");
-            // print(cmdName);
-            // print("clientFunctionArguments: ");
-            // let cfarguments = Object.keys(clientFunctionArguments)[0];
-            // print(cfarguments);
+
             // If the command is in a wrapped form, then we look for the actual command object
             // inside the query/$query object.
             if (cmdName === "query" || cmdName === "$query") {
@@ -352,8 +345,12 @@ var {
                 let res;
 
                 try {
+                    // print("client: ");
+                    // print(client);
+                    // print("clientFunctionArguments ");
+                    // print(clientFunctionArguments);
                     res = clientFunction.apply(client, clientFunctionArguments);
-                    print("--------------------------");
+                    print("res: ");
                     print(tojson(res));
                 } catch (e) {
                     if (!isNetworkError(e) || numRetries === 0) {
@@ -446,8 +443,9 @@ var {
         }
 
         this.runCommand = function runCommand(driverSession, dbName, cmdObj, options) {
-            // print("Session runCommand called");
             cmdObj = prepareCommandRequest(driverSession, cmdObj);
+            print("cmd object: ");
+            print(tojson(cmdObj));
 
             const res = runClientFunctionWithRetries(
                 driverSession, cmdObj, client.runCommand, [dbName, cmdObj, options]);
