@@ -831,7 +831,7 @@ DBCommandCursor.prototype._hasNextUsingCommands = function() {
             return false;
         }
 
-        this._runGetMoreCommand();
+        // this._runGetMoreCommand();
     }
 
     return this._batch.length > 0;

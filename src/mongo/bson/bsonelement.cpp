@@ -663,7 +663,7 @@ int BSONElement::computeSize() const {
     int8_t type = *data;
     if (MONGO_unlikely(type < 0 || type > JSTypeMax)) {
         if (MONGO_unlikely(type != MinKey && type != MaxKey)) {
-            msgAssertedBadType(type);
+//            msgAssertedBadType(type);
         }
 
         // MinKey and MaxKey should be treated the same as Null

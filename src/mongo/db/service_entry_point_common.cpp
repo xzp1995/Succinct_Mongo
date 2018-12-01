@@ -941,7 +941,19 @@ namespace mongo {
 
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
-                replyBuilder->getBodyBuilder().append("ok", 1.0);
+                replyBuilder->getBodyBuilder().resetToEmpty();
+                replyBuilder->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
+                                                                          << "\"test.temp\""
+                                                                          << "firstBatch"
+                                                                          << BSON_ARRAY(BSON("_id" << "1" << "y" << 23))));
+
+                replyBuilder->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
+//                BSON("cursor" << BSON("id" << CursorId(123) << "ns"
+//                                           << "db.coll"
+//                                           << "firstBatch"
+//                                           << BSON_ARRAY(BSON("_id" << 1) << BSON("_id" << 2)))
+//                              << "ok"
+//                              << 1)
                 replyBuilder->getBodyBuilder().append("result", "count: 12345");
                 auto response = replyBuilder->done();
                 CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
