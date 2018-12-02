@@ -19,6 +19,9 @@ private:
     string succinct_path = "";
     string plain_filename;
     void *succinct_fd;  //void* to succinct file descriptor, need explicit conversion to SuccinctShard* when use
+    set<int64_t> find_results;
+    bool find_has_next;
+    set<int64_t>::iterator find_cursor;
 
     set<int64_t> find_key(vector<pair<string, string>>& attr_val_vec);    //find keys satisfying attr-val pairs
     char get_delimiter(const string& attribute);
@@ -29,7 +32,8 @@ public:
     bool insert_string(string& json_string, int size);  //string containing json and batch size, return 1 on end of doc
     pair<size_t, size_t> get_size();    //return {succinct size, original size}
     void serialize_succinct();  //serialize succinct to succinct path directory
-    string find_query(vector<pair<string, string>>& attr_val_vec);  //run find query, find exact match of attr-val pairs
+    string find_query(vector<pair<string, string>>& attr_val_vec, int batch_size);  //find exact match, size<=batch_size
+    string find_next(int batch_size);   //get next batch_size query results
 };
 
 #endif //S_SUCCINCT_COLLECTION_H
