@@ -1,0 +1,126 @@
+cmake_minimum_required(VERSION 3.10)
+project(succinct_collection)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_FLAGS -pthread)
+find_package(Threads)
+
+include_directories(.)
+include_directories(core/include)
+include_directories(core/include/npa)
+include_directories(core/include/regex)
+include_directories(core/include/regex/executor)
+include_directories(core/include/regex/parser)
+include_directories(core/include/regex/planner)
+include_directories(core/include/sampledarray)
+include_directories(core/include/utils)
+include_directories(json/benchmarks/thirdparty/benchmark/include)
+include_directories(json/benchmarks/thirdparty/benchmark/include/benchmark)
+include_directories(json/benchmarks/thirdparty/benchmark/src)
+include_directories(json/include)
+include_directories(json/include/nlohmann)
+include_directories(json/include/nlohmann/detail)
+include_directories(json/include/nlohmann/detail/conversions)
+include_directories(json/include/nlohmann/detail/input)
+include_directories(json/include/nlohmann/detail/iterators)
+include_directories(json/include/nlohmann/detail/meta)
+include_directories(json/include/nlohmann/detail/output)
+include_directories(json/single_include)
+include_directories(json/single_include/nlohmann)
+include_directories(json/test/thirdparty/catch)
+include_directories(json/test/thirdparty/fifo_map)
+include_directories(json/test/thirdparty/Fuzzer)
+
+add_executable(succinct_collection
+        core/include/npa/delta_encoded_npa.h
+        core/include/npa/elias_delta_encoded_npa.h
+        core/include/npa/elias_gamma_encoded_npa.h
+        core/include/npa/npa.h
+        core/include/npa/wavelet_tree_encoded_npa.h
+        core/include/regex/executor/regex_executor.h
+        core/include/regex/executor/regex_executor_bwd.h
+        core/include/regex/executor/regex_executor_fwd.h
+        core/include/regex/parser/regex_parser.h
+        core/include/regex/planner/regex_planner.h
+        core/include/regex/regex.h
+        core/include/regex/regex_types.h
+        core/include/sampledarray/flat_sampled_array.h
+        core/include/sampledarray/layered_sampled_array.h
+        core/include/sampledarray/layered_sampled_isa.h
+        core/include/sampledarray/layered_sampled_sa.h
+        core/include/sampledarray/opportunistic_layered_sampled_array.h
+        core/include/sampledarray/opportunistic_layered_sampled_isa.h
+        core/include/sampledarray/opportunistic_layered_sampled_sa.h
+        core/include/sampledarray/sampled_array.h
+        core/include/sampledarray/sampled_by_index_isa.h
+        core/include/sampledarray/sampled_by_index_sa.h
+        core/include/sampledarray/sampled_by_value_isa.h
+        core/include/sampledarray/sampled_by_value_sa.h
+        core/include/sampledarray/sampling_scheme.h
+        core/include/utils/array_stream.h
+        core/include/utils/assertions.h
+        core/include/utils/buf_allocator.h
+        core/include/utils/definitions.h
+        core/include/utils/divsufsortxx.h
+        core/include/utils/divsufsortxx_utility.h
+        core/include/utils/succinct_allocator.h
+        core/include/utils/succinct_utils.h
+        core/include/utils/thread_pool.h
+        core/include/layered_succinct_shard.h
+        core/include/succinct_base.h
+        core/include/succinct_core.h
+        core/include/succinct_file.h
+        core/include/succinct_semistructured_shard.h
+        core/include/succinct_shard.h
+        core/src/npa/elias_delta_encoded_npa.cc
+        core/src/npa/elias_gamma_encoded_npa.cc
+        core/src/npa/wavelet_tree_encoded_npa.cc
+        core/src/sampledarray/layered_sampled_isa.cc
+        core/src/sampledarray/layered_sampled_sa.cc
+        core/src/sampledarray/opportunistic_layered_sampled_isa.cc
+        core/src/sampledarray/opportunistic_layered_sampled_sa.cc
+        core/src/sampledarray/sampled_by_index_isa.cc
+        core/src/sampledarray/sampled_by_index_sa.cc
+        core/src/sampledarray/sampled_by_value_isa.cc
+        core/src/sampledarray/sampled_by_value_sa.cc
+        core/src/utils/succinct_allocator.cc
+        core/src/layered_succinct_shard.cc
+        core/src/succinct_base.cc
+        core/src/succinct_core.cc
+        core/src/succinct_file.cc
+        core/src/succinct_shard.cc
+        json/include/nlohmann/detail/conversions/from_json.hpp
+        json/include/nlohmann/detail/conversions/to_chars.hpp
+        json/include/nlohmann/detail/conversions/to_json.hpp
+        json/include/nlohmann/detail/input/binary_reader.hpp
+        json/include/nlohmann/detail/input/input_adapters.hpp
+        json/include/nlohmann/detail/input/json_sax.hpp
+        json/include/nlohmann/detail/input/lexer.hpp
+        json/include/nlohmann/detail/input/parser.hpp
+        json/include/nlohmann/detail/input/position_t.hpp
+        json/include/nlohmann/detail/iterators/internal_iterator.hpp
+        json/include/nlohmann/detail/iterators/iter_impl.hpp
+        json/include/nlohmann/detail/iterators/iteration_proxy.hpp
+        json/include/nlohmann/detail/iterators/json_reverse_iterator.hpp
+        json/include/nlohmann/detail/iterators/primitive_iterator.hpp
+        json/include/nlohmann/detail/meta/cpp_future.hpp
+        json/include/nlohmann/detail/meta/detected.hpp
+        json/include/nlohmann/detail/meta/is_sax.hpp
+        json/include/nlohmann/detail/meta/type_traits.hpp
+        json/include/nlohmann/detail/meta/void_t.hpp
+        json/include/nlohmann/detail/output/binary_writer.hpp
+        json/include/nlohmann/detail/output/output_adapters.hpp
+        json/include/nlohmann/detail/output/serializer.hpp
+        json/include/nlohmann/detail/exceptions.hpp
+        json/include/nlohmann/detail/json_pointer.hpp
+        json/include/nlohmann/detail/json_ref.hpp
+        json/include/nlohmann/detail/macro_scope.hpp
+        json/include/nlohmann/detail/macro_unscope.hpp
+        json/include/nlohmann/detail/value_t.hpp
+        json/include/nlohmann/adl_serializer.hpp
+        json/include/nlohmann/json.hpp
+        json/include/nlohmann/json_fwd.hpp
+        json/single_include/nlohmann/json.hpp
+        main.cpp
+        Succinct_Collection.cpp
+        Succinct_Collection.h)
