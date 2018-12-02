@@ -350,8 +350,8 @@ var {
                     // print("clientFunctionArguments ");
                     // print(clientFunctionArguments);
                     res = clientFunction.apply(client, clientFunctionArguments);
-                    print("res: ");
-                    print(tojson(res));
+                    // print("res: ");
+                    // print(tojson(res));
                 } catch (e) {
                     if (!isNetworkError(e) || numRetries === 0) {
                         throw e;
@@ -444,8 +444,8 @@ var {
 
         this.runCommand = function runCommand(driverSession, dbName, cmdObj, options) {
             cmdObj = prepareCommandRequest(driverSession, cmdObj);
-            print("cmd object: ");
-            print(tojson(cmdObj));
+            // print("cmd object: ");
+            // print(tojson(cmdObj));
 
             const res = runClientFunctionWithRetries(
                 driverSession, cmdObj, client.runCommand, [dbName, cmdObj, options]);
