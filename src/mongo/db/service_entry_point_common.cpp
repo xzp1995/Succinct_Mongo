@@ -29,6 +29,8 @@
 
 #define MONGO_LOG_DEFAULT_COMPONENT ::mongo::logger::LogComponent::kCommand
 
+#include "mongo/succinct/Succinct_Collection.h"
+
 #include "mongo/platform/basic.h"
 
 #include "mongo/db/service_entry_point_common.h"

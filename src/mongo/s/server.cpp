@@ -134,7 +134,7 @@ constexpr auto kSignKeysRetryInterval = Seconds{1};
 boost::optional<ShardingUptimeReporter> shardingUptimeReporter;
 
 Status waitForSigningKeys(OperationContext* opCtx) {
-    log() << "******************************* waitForSigningKeys called";
+    //log() << "******************************* waitForSigningKeys called";
     auto const shardRegistry = Grid::get(opCtx)->shardRegistry();
 
     while (true) {
@@ -147,8 +147,8 @@ Status waitForSigningKeys(OperationContext* opCtx) {
         // internalClient.
         if (rsm && (rsm->getMaxWireVersion() < WireVersion::SUPPORTS_OP_MSG ||
                     rsm->getMaxWireVersion() != rsm->getMinWireVersion())) {
-            log() << "Not waiting for signing keys, not supported by the config shard "
-                  << configCS.getSetName();
+            //log() << "Not waiting for signing keys, not supported by the config shard "
+                  //<< configCS.getSetName();
             return Status::OK();
         }
         auto stopStatus = opCtx->checkForInterruptNoAssert();
@@ -160,8 +160,8 @@ Status waitForSigningKeys(OperationContext* opCtx) {
             if (LogicalTimeValidator::get(opCtx)->shouldGossipLogicalTime()) {
                 return Status::OK();
             }
-            log() << "Waiting for signing keys, sleeping for " << kSignKeysRetryInterval
-                  << " and trying again.";
+            //log() << "Waiting for signing keys, sleeping for " << kSignKeysRetryInterval
+                  //<< " and trying again.";
             sleepFor(kSignKeysRetryInterval);
             continue;
         } catch (const DBException& ex) {
@@ -179,7 +179,7 @@ Status waitForSigningKeys(OperationContext* opCtx) {
  * not depend on the prior execution of mongo initializers or the existence of threads.
  */
 void cleanupTask(ServiceContext* serviceContext) {
-    log() << "******************************* cleanupTask called";
+    //log() << "******************************* cleanupTask called";
     {
         Client::initThreadIfNotAlready();
         Client& client = cc();
@@ -261,7 +261,7 @@ void cleanupTask(ServiceContext* serviceContext) {
 }
 
 Status initializeSharding(OperationContext* opCtx) {
-    log() << "******************************* initializeSharding called";
+    //log() << "******************************* initializeSharding called";
     auto targeterFactory = stdx::make_unique<RemoteCommandTargeterFactoryImpl>();
     auto targeterFactoryPtr = targeterFactory.get();
 
@@ -326,7 +326,7 @@ Status initializeSharding(OperationContext* opCtx) {
 }
 
 void initWireSpec() {
-    log() << "******************************* initWireSpec called";
+    //log() << "******************************* initWireSpec called";
     WireSpec& spec = WireSpec::instance();
 
     // Since the upgrade order calls for upgrading mongos last, it only needs to talk the latest
@@ -338,7 +338,7 @@ void initWireSpec() {
 }
 
 ExitCode runMongosServer(ServiceContext* serviceContext) {
-    log() << "******************************* runMongosServer called";
+    //log() << "******************************* runMongosServer called";
     Client::initThread("mongosMain");
     printShardingVersionInfo(false);
 
@@ -399,7 +399,7 @@ ExitCode runMongosServer(ServiceContext* serviceContext) {
         if (!status.isOK()) {
             if (status == ErrorCodes::CallbackCanceled) {
                 invariant(globalInShutdownDeprecated());
-                log() << "Shutdown called before mongos finished starting up";
+                //log() << "Shutdown called before mongos finished starting up";
                 return EXIT_CLEAN;
             }
             error() << "Error initializing sharding system: " << status;
@@ -471,7 +471,7 @@ ExitCode runMongosServer(ServiceContext* serviceContext) {
 #else
     if (ntservice::shouldStartService()) {
         ntservice::reportStatus(SERVICE_RUNNING);
-        log() << "Service running";
+        //log() << "Service running";
     }
 #endif
 
@@ -491,7 +491,7 @@ ExitCode initService() {
  * is intended to separate the actions from "storage" and "validation" of our startup configuration.
  */
 void startupConfigActions(const std::vector<std::string>& argv) {
-    log() << "******************************* startupConfigActions called";
+    //log() << "******************************* startupConfigActions called";
 #if defined(_WIN32)
     std::vector<std::string> disallowedOptions;
     disallowedOptions.push_back("upgrade");
@@ -505,7 +505,7 @@ std::unique_ptr<AuthzManagerExternalState> createAuthzManagerExternalStateMongos
 }
 
 ExitCode main(ServiceContext* serviceContext) {
-    log() << "******************************* main called";
+    //log() << "******************************* main called";
     serviceContext->setFastClockSource(FastClockSourceFactory::create(Milliseconds{10}));
 
     auto const shardingContext = Grid::get(serviceContext);
@@ -568,7 +568,7 @@ MONGO_INITIALIZER_GENERAL(setSSLManagerType, MONGO_NO_PREREQUISITES, ("SSLManage
 }  // namespace
 
 ExitCode mongoSMain(int argc, char* argv[], char** envp) {
-    log() << "******************************* mongoSMain called";
+    //log() << "******************************* mongoSMain called";
     setMongos();
 
     if (argc < 1)
@@ -636,7 +636,7 @@ int wmain(int argc, wchar_t* argvW[], wchar_t* envpW[]) {
 }
 #else
 int main(int argc, char* argv[], char** envp) {
-    log() << "******************************* main called";
+    //log() << "******************************* main called";
     mongo::exitCleanly(mongo::mongoSMain(argc, argv, envp));
 }
 #endif
