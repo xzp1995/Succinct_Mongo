@@ -940,7 +940,14 @@ namespace mongo {
             std::string filter_value = getFilterValue(req_str);
             if (filter_value.find("succinct") != std::string::npos) {
                 std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! findSuccinct identified" << std::endl;
-
+		string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
+    		string c = "c";
+    		bool finished;
+    		Succinct_Collection sc(c, s, finished);
+		vector<pair<string, string>> query_vec;
+	    	cout << sc.find_query(query_vec, 3) << endl;
+	    	cout << sc.find_next(10) << endl;
+	    	cout << endl;
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
                 replyBuilder->getBodyBuilder().resetToEmpty();

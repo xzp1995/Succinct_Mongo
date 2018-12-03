@@ -125,6 +125,8 @@ add_executable(succinct_collection
         Succinct_Collection.cpp
         Succinct_Collection.h)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_library(succinct STATIC
         core/include/npa/delta_encoded_npa.h
         core/include/npa/elias_delta_encoded_npa.h

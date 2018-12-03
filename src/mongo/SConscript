@@ -344,6 +344,7 @@ env.Library(
         'util/options_parser/options_parser_init',
         'util/periodic_runner_factory',
         'util/version_impl',
+	'succinct/libsuccinct.a',
     ],
 )
 
@@ -445,6 +446,7 @@ mongos = env.Program(
         'util/ntservice',
         'util/options_parser/options_parser_init',
         'util/version_impl',
+	'succinct/libsuccinct.a',
     ],
     INSTALL_ALIAS=[
         'servers',
