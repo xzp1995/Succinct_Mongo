@@ -91,7 +91,7 @@ bool Succinct_Collection::insert_string(string& json_string, int size) {
 Succinct_Collection::Succinct_Collection(string& collection_name, string& json_string, bool& finish_construct) {
     //assign plain file name
     srand (time(NULL));
-    string file_location = "files/"+collection_name+"_"+to_string(rand()%10000);
+    string file_location = collection_name+"_"+to_string(rand()%10000);
     plain_filename = file_location+".txt";
     succinct_path = file_location+".succinct";
     ofstream succinct_file;
