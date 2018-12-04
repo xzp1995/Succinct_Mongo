@@ -53,7 +53,7 @@ json string_to_json(const string& delimiter_string,unordered_map<char, string>& 
 }
 
 
-bool Succinct_Collection::insert_string(string& json_string, int size) {
+void Succinct_Collection::insert_string(string& json_string) {
     ofstream succinct_file;
     succinct_file.open(plain_filename);
     json j = json::parse(json_string);
@@ -77,18 +77,17 @@ bool Succinct_Collection::insert_string(string& json_string, int size) {
             succinct_file << value << delimiter << " ";
         }
     }
+    curr_doc_count += insert_count;
     succinct_file.close();
-    if (insert_count < size) {
+    if (curr_doc_count >= total_doc_count) {
         succinct_fd = new SuccinctShard(0, plain_filename);
         succinct_file.close();
         remove(plain_filename.c_str());
-        return true;
     }
-    return false;
 }
 
 
-Succinct_Collection::Succinct_Collection(string& collection_name, string& json_string, bool& finish_construct) {
+Succinct_Collection::Succinct_Collection(string& collection_name, string& json_string, int doc_count) {
     //assign plain file name
     srand (time(NULL));
     string file_location = collection_name+"_"+to_string(rand()%10000);
@@ -101,7 +100,9 @@ Succinct_Collection::Succinct_Collection(string& collection_name, string& json_s
     for (int i=0; i<128; i++) available_delimiters.push((char)i);
 
     //parse json
-    finish_construct = insert_string(json_string, 100);
+    total_doc_count = doc_count;
+    curr_doc_count = 0;
+    insert_string(json_string);
 }
 
 

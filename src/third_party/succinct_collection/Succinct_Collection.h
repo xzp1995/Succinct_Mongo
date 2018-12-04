@@ -22,14 +22,16 @@ private:
     set<int64_t> find_results;
     bool find_has_next;
     set<int64_t>::iterator find_cursor;
+    int total_doc_count;
+    int curr_doc_count;
 
     set<int64_t> find_key(vector<pair<string, string>>& attr_val_vec);    //find keys satisfying attr-val pairs
     char get_delimiter(const string& attribute);
 
 public:
-    Succinct_Collection(string& json_string, string& collection_name, bool& finish_construct);  //f_c=1 if finished
+    Succinct_Collection(string& collection_name, string& json_string, int doc_count);  //f_c=1 if finished
     ~Succinct_Collection();
-    bool insert_string(string& json_string, int size);  //string containing json and batch size, return 1 on end of doc
+    void insert_string(string& json_string);  //string containing json and batch size, return 1 on end of doc
     pair<size_t, size_t> get_size();    //return {succinct size, original size}
     void serialize_succinct();  //serialize succinct to succinct path directory
     string find_query(vector<pair<string, string>>& attr_val_vec, int batch_size);  //find exact match, size<=batch_size
