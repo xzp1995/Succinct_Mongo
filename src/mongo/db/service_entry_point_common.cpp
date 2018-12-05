@@ -846,6 +846,20 @@ namespace mongo {
             return res;
         }
 
+        std::string getFindValue(std::string req_str) {
+            std::string res;
+            size_t filter_pos = req_str.find("find");
+            if (filter_pos != std::string::npos) {
+                size_t i = filter_pos + 7;
+                while (i < req_str.size() && req_str[i] != '"') {
+                    res += req_str[i];
+                    ++i;
+                }
+                res += req_str[i];
+            }
+            return res;
+        }
+
         DbResponse receivedCommands(OperationContext* opCtx,
                                     const Message& message,
                                     const ServiceEntryPointCommon::Hooks& behaviors) {
@@ -965,25 +979,24 @@ namespace mongo {
 
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
-                replyBuilder->getBodyBuilder().resetToEmpty();
-                replyBuilder->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
-                                                                          << "\"test.temp\""
-                                                                          << "firstBatch"
-                                                                          << BSON_ARRAY(BSON("_id" << "1" << "y" << 23))));
 
-                replyBuilder->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
-//                BSON("cursor" << BSON("id" << CursorId(123) << "ns"
-//                                           << "db.coll"
-//                                           << "firstBatch"
-//                                           << BSON_ARRAY(BSON("_id" << 1) << BSON("_id" << 2)))
-//                              << "ok"
-//                              << 1)
-                replyBuilder->getBodyBuilder().append("result", "count: 12345");
-                auto response = replyBuilder->done();
-                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
-                return DbResponse{std::move(response)};
+
+
+
+//                replyBuilder->getBodyBuilder().resetToEmpty();
+//                replyBuilder->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
+//                                                                          << "\"test.temp\""
+//                                                                          << "firstBatch"
+//                                                                          << BSON_ARRAY(BSON("_id" << "1" << "y" << 23))));
+//
+//                replyBuilder->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
+//                replyBuilder->getBodyBuilder().append("result", "count: 12345");
+//                auto response = replyBuilder->done();
+//                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
+//                return DbResponse{std::move(response)};
 
             }
+            std::cout << "=======###########======== filter_string: " << filter_value << std::endl;
             if (filter_value.find("collection_count") != std::string::npos) {
                 std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! buildSuccinct identified" << std::endl;
                 string col_count = "collection_count: ";
@@ -996,28 +1009,42 @@ namespace mongo {
                     right++;
                 }
 
+                int collect_count = std::stoi(filter_value.substr(left, right - left + 1));
+                std::cout << "collection_count: " << collect_count << std::endl;
 
-                std::cout << "collection_count: " << std::stoi(filter_value.substr(left, right - left + 1)) << std::endl;
+                auto response = replyBuilder->done();
+                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
 
+
+                Message resp_msg = response;
+                auto resp = rpc::makeReply(&resp_msg);
+                BSONObj resp_body = resp->getCommandReply();
+
+                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
+
+                std::string collection_name = getFindValue(req_str);
+                std::cout << "@@@@@@@@@@@@@@@@@@@@@collection_name: " << collection_name << std::endl;
+                std::string resp_body_str = resp_body.jsonString();
+//                Succinct_Collection S_C(collection_name, resp_body_str, collect_count);
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
-                replyBuilder->getBodyBuilder().resetToEmpty();
-                replyBuilder->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
+                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                replyBuilder_new->getBodyBuilder().resetToEmpty();
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
                                                                           << "\"test.temp\""
                                                                           << "firstBatch"
-                                                                          << BSON_ARRAY(BSON("building collection: " << "1") << BSON("building collection: " << "2"))
-                                                                          << "command: " << "buildsuccinct"));
+                                                                          << BSON_ARRAY(BSON("building collection: " << "done"))));
 
-                replyBuilder->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
+                replyBuilder_new->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
 //                BSON("cursor" << BSON("id" << CursorId(123) << "ns"
 //                                           << "db.coll"
 //                                           << "firstBatch"
 //                                           << BSON_ARRAY(BSON("_id" << 1) << BSON("_id" << 2)))
 //                              << "ok"
 //                              << 1)
-                replyBuilder->getBodyBuilder().append("result", "count: 12345");
-                auto response = replyBuilder->done();
+                replyBuilder_new->getBodyBuilder().append("result", "count: 12345");
+                auto response_new = replyBuilder_new->done();
                 CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
-                return DbResponse{std::move(response)};
+                return DbResponse{std::move(response_new)};
 
             }
 

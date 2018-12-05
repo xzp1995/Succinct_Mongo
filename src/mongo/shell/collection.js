@@ -214,6 +214,10 @@ DBCollection.prototype._massageObject = function(q) {
 };
 
 DBCollection.prototype.find = function(query, fields, limit, skip, batchSize, options) {
+    // print("+++++++++++batchsize: ");
+    // print(tojson(batchSize));
+    // print(batchSize);
+    print(tojson(query));
     var cursor = new DBQuery(this._mongo,
                              this._db,
                              this,
@@ -253,9 +257,11 @@ DBCollection.prototype.buildSuccinct = function(query, fields, limit, skip, batc
     var collection_count =  QueryHelpers._applyCountOptions(query_result, options).count(true);
 
     if (query === undefined) {
-        query = {undef: 1};
+        query = {};
     }
-    query.collection_count = collection_count;
+    query.$or = [{collection_count: collection_count}, {}];
+    batchSize = 2;
+    // query.collection_count = collection_count;
     var cursor = new DBQuery(this._mongo,
         this._db,
         this,
@@ -290,7 +296,11 @@ DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batch
         query = {undef: 1};
     }
     // print(tojson(query));
-    query.succinct = 1;
+    batchSize = 5;
+    // query.succinct = 1;
+    query.$or = [{succinct: 1}, {}];
+
+    // query.$or = []
     var cursor = new DBQuery(this._mongo,
         this._db,
         this,

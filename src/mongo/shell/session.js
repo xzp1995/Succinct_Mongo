@@ -345,24 +345,20 @@ var {
                 let res;
 
                 try {
-                    // print("client: ");
-                    // print(client);
-                    // print("clientFunctionArguments ");
-                    // print(clientFunctionArguments);
                     res = clientFunction.apply(client, clientFunctionArguments);
                     // print("---------------res: ");
                     // var res_json = tojson(res);
-                    var cursor_json = tojson(res["cursor"]);
+                    // var cursor_json = tojson(res["cursor"]);
 
 
-                    print("~~~~~~~~~~~~~~~cursor: ");
-                    print(cursor_json);
-                    if (res["cursor"] != undefined) {
-                        var batch_json = tojson(res["cursor"]["firstBatch"]);
-                        print("***************firstBatch: ");
-                        print(batch_json);
-
-                    }
+                    // print("~~~~~~~~~~~~~~~cursor: ");
+                    // print(cursor_json);
+                    // if (res["cursor"] != undefined) {
+                    //     var batch_json = tojson(res["cursor"]["firstBatch"]);
+                    //     print("***************firstBatch: ");
+                    //     print(batch_json);
+                    //
+                    // }
                     // print(res_json["cursor"]["firstBatch"]);
                 } catch (e) {
                     if (!isNetworkError(e) || numRetries === 0) {
