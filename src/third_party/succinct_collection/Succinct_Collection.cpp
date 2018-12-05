@@ -143,10 +143,11 @@ set<int64_t> Succinct_Collection::find_key(vector<pair<string, string>>& attr_va
     return result;
 }
 
-string Succinct_Collection::find_query(vector<pair<string, string>>& attr_val_vec, int batch_size) {
+vector<string> Succinct_Collection::find_query(vector<pair<string, string>>& attr_val_vec, int batch_size) {
     if (!succinct_fd) {
         cout << "Succinct build unfinished!" << endl;
-        return "";
+        vector<string> res;
+        return res;
     }
     find_results = find_key(attr_val_vec);
     find_cursor = find_results.begin();
@@ -155,22 +156,22 @@ string Succinct_Collection::find_query(vector<pair<string, string>>& attr_val_ve
 }
 
 
-string Succinct_Collection::find_next(int batch_size) {
+vector<string> Succinct_Collection::find_next(int batch_size) {
+    vector<string> result;
     if (!succinct_fd) {
         cout << "Succinct build unfinished!" << endl;
-        return "";
+        return result;
     }
-    if (!find_has_next) return "";
-    vector<json> json_vec;
+    if (!find_has_next) return result;
     auto succinct_ptr = (SuccinctShard*)succinct_fd;
-    for (; find_cursor != find_results.end() && json_vec.size() < batch_size; find_cursor++) {
+    for (; find_cursor != find_results.end() && result.size() < batch_size; find_cursor++) {
         string doc_string;
         succinct_ptr->Get(doc_string, *find_cursor);
-        json_vec.push_back(string_to_json(doc_string, delimiter_attribute_map));
+        json doc_json = string_to_json(doc_string, delimiter_attribute_map);
+        result.push_back(doc_json.dump());
     }
     find_has_next = (find_cursor!=find_results.end());
-    json j_vec(json_vec);
-    return j_vec.dump();
+    return result;
 }
 
 

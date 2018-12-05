@@ -11,10 +11,10 @@ int main() {
     sc.get_size();
 
     vector<pair<string, string>> query_vec;
-    cout << sc.find_query(query_vec, 3) << endl;
-    cout << sc.find_next(10) << endl;
-    cout << endl;
+    vector<string> res = sc.find_query(query_vec, 3);
+    for (auto s:res) cout<<s<<endl;
 
+    /*
     query_vec.push_back({"name","\"x\""});
     cout << sc.find_query(query_vec, 1) << endl;
     cout << sc.find_next(1) << endl;
@@ -22,4 +22,5 @@ int main() {
 
     query_vec.push_back({"y",to_string(3)});
     cout << sc.find_query(query_vec, 10) << endl;
+     */
 }
