@@ -29,8 +29,6 @@
 
 #define MONGO_LOG_DEFAULT_COMPONENT ::mongo::logger::LogComponent::kCommand
 
-#include "mongo/succinct/Succinct_Collection.h"
-
 #include "mongo/platform/basic.h"
 
 #include "mongo/db/service_entry_point_common.h"
@@ -96,6 +94,7 @@
 #include "mongo/db/query/cursor_response.h"
 #include "mongo/rpc/op_msg_rpc_impls.h"
 #include "mongo/unittest/unittest.h"
+#include "mongo/succinct_collection/Succinct_Collection.h"
 
 namespace mongo {
 
@@ -852,7 +851,10 @@ namespace mongo {
                                     const ServiceEntryPointCommon::Hooks& behaviors) {
 //    std::cout << "######################## receivedCommands" << std::endl;
             auto replyBuilder = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
-
+//            string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
+//            string c = "c";
+//            bool finished;
+//            Succinct_Collection sc(c, s, finished);
             [&] {
                 OpMsgRequest request;
                 try {  // Parse.
@@ -940,14 +942,27 @@ namespace mongo {
             std::string filter_value = getFilterValue(req_str);
             if (filter_value.find("succinct") != std::string::npos) {
                 std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! findSuccinct identified" << std::endl;
-		string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
-    		string c = "c";
-    		bool finished;
-    		Succinct_Collection sc(c, s, finished);
-		vector<pair<string, string>> query_vec;
-	    	cout << sc.find_query(query_vec, 3) << endl;
-	    	cout << sc.find_next(10) << endl;
-	    	cout << endl;
+
+
+                string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
+                string c = "c";
+                Succinct_Collection sc(c, s, 5);
+
+//                sc.get_size();
+//
+//                vector<pair<string, string>> query_vec;
+//                cout << sc.find_query(query_vec, 3) << endl;
+//                cout << sc.find_next(10) << endl;
+//                cout << endl;
+//
+//                query_vec.push_back({"name","\"x\""});
+//                cout << sc.find_query(query_vec, 1) << endl;
+//                cout << sc.find_next(1) << endl;
+//                cout << endl;
+//
+//                query_vec.push_back({"y",to_string(3)});
+//                cout << sc.find_query(query_vec, 10) << endl;
+
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
                 replyBuilder->getBodyBuilder().resetToEmpty();
@@ -969,6 +984,43 @@ namespace mongo {
                 return DbResponse{std::move(response)};
 
             }
+            if (filter_value.find("collection_count") != std::string::npos) {
+                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! buildSuccinct identified" << std::endl;
+                string col_count = "collection_count: ";
+                size_t left = filter_value.find("collection_count") + col_count.size();
+                size_t right = left;
+                while(right < filter_value.size()) {
+                    if (filter_value[right] == ' ' || filter_value[right] == ',' || filter_value[right] == '}') {
+                        break;
+                    }
+                    right++;
+                }
+
+
+                std::cout << "collection_count: " << std::stoi(filter_value.substr(left, right - left + 1)) << std::endl;
+
+//                replyBuilder->getBodyBuilder().append("cursor", "hello");
+                replyBuilder->getBodyBuilder().resetToEmpty();
+                replyBuilder->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
+                                                                          << "\"test.temp\""
+                                                                          << "firstBatch"
+                                                                          << BSON_ARRAY(BSON("building collection: " << "1") << BSON("building collection: " << "2"))
+                                                                          << "command: " << "buildsuccinct"));
+
+                replyBuilder->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
+//                BSON("cursor" << BSON("id" << CursorId(123) << "ns"
+//                                           << "db.coll"
+//                                           << "firstBatch"
+//                                           << BSON_ARRAY(BSON("_id" << 1) << BSON("_id" << 2)))
+//                              << "ok"
+//                              << 1)
+                replyBuilder->getBodyBuilder().append("result", "count: 12345");
+                auto response = replyBuilder->done();
+                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
+                return DbResponse{std::move(response)};
+
+            }
+
 
             auto response = replyBuilder->done();
             CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();

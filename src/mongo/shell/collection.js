@@ -226,7 +226,7 @@ DBCollection.prototype.find = function(query, fields, limit, skip, batchSize, op
                              options || this.getQueryOptions());
 
     {
-        print("find called");
+        // print("find called");
         const session = this.getDB().getSession();
 
         const readPreference = session._serverSession.client.getReadPreference(session);
@@ -243,7 +243,53 @@ DBCollection.prototype.find = function(query, fields, limit, skip, batchSize, op
     return cursor;
 };
 
+DBCollection.prototype.buildSuccinct = function(query, fields, limit, skip, batchSize, options) {
+    // print(query);
+
+    query_result = this.find(query);
+    // print(tojson(query_result));
+
+    // Apply options and return the result of the find
+    var collection_count =  QueryHelpers._applyCountOptions(query_result, options).count(true);
+
+    if (query === undefined) {
+        query = {undef: 1};
+    }
+    query.collection_count = collection_count;
+    var cursor = new DBQuery(this._mongo,
+        this._db,
+        this,
+        this._fullName,
+        this._massageObject(query),
+        fields,
+        limit,
+        skip,
+        batchSize,
+        options || this.getQueryOptions());
+
+    {
+        print("buildSuccinct called");
+        const session = this.getDB().getSession();
+
+        const readPreference = session._serverSession.client.getReadPreference(session);
+        if (readPreference !== null) {
+            cursor.readPref(readPreference.mode, readPreference.tags);
+        }
+
+        const readConcern = session._serverSession.client.getReadConcern(session);
+        if (readConcern !== null) {
+            cursor.readConcern(readConcern.level);
+        }
+    }
+    return cursor;
+
+};
+
 DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batchSize, options) {
+    if (query === undefined) {
+        query = {undef: 1};
+    }
+    // print(tojson(query));
     query.succinct = 1;
     var cursor = new DBQuery(this._mongo,
         this._db,

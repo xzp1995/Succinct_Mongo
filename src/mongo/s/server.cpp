@@ -148,7 +148,7 @@ Status waitForSigningKeys(OperationContext* opCtx) {
         if (rsm && (rsm->getMaxWireVersion() < WireVersion::SUPPORTS_OP_MSG ||
                     rsm->getMaxWireVersion() != rsm->getMinWireVersion())) {
             //log() << "Not waiting for signing keys, not supported by the config shard "
-                  //<< configCS.getSetName();
+            //      << configCS.getSetName();
             return Status::OK();
         }
         auto stopStatus = opCtx->checkForInterruptNoAssert();
@@ -161,7 +161,7 @@ Status waitForSigningKeys(OperationContext* opCtx) {
                 return Status::OK();
             }
             //log() << "Waiting for signing keys, sleeping for " << kSignKeysRetryInterval
-                  //<< " and trying again.";
+            //      << " and trying again.";
             sleepFor(kSignKeysRetryInterval);
             continue;
         } catch (const DBException& ex) {
