@@ -1,0 +1,4 @@
+/Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/build/CMakeFiles/rebuild_cache.dir
+/Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/build/CMakeFiles/edit_cache.dir
+/Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/build/CMakeFiles/succinct.dir
+/Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/build/CMakeFiles/succinct_collection.dir

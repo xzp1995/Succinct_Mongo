@@ -855,11 +855,11 @@ namespace mongo {
                     res += req_str[i];
                     ++i;
                 }
-                res += req_str[i];
             }
             return res;
         }
 
+        unordered_map<std::string, Succinct_Collection*> collection_map;
         DbResponse receivedCommands(OperationContext* opCtx,
                                     const Message& message,
                                     const ServiceEntryPointCommon::Hooks& behaviors) {
@@ -1023,10 +1023,20 @@ namespace mongo {
                 std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
 
                 std::string collection_name = getFindValue(req_str);
-                std::cout << "@@@@@@@@@@@@@@@@@@@@@collection_name: " << collection_name << std::endl;
+//                std::cout << "@@@@@@@@@@@@@@@@@@@@@collection_name: " << collection_name << std::endl;
                 std::string resp_body_str = resp_body.jsonString();
-//                Succinct_Collection S_C(collection_name, resp_body_str, collect_count);
+//                std::cout << "@@@@@@@@@@@@@@@collection name: " << collection_name << " resp_body_str: " << resp_body_str << " collect_count: " << collect_count << std::endl;
+//                string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
+
+//                std::cout << "@@@@@@@@@@@@ resp_body_str: " << resp_body_str << std::endl;
+//                std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@ s: " << s << std::endl;
+
+                Succinct_Collection S_C(collection_name, resp_body_str, collect_count);
+                collection_map[collection_name] = &S_C;
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
+//
+//                Succinct_Collection sc(c, s, 5);
+
                 auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
                 replyBuilder_new->getBodyBuilder().resetToEmpty();
                 replyBuilder_new->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
@@ -1043,7 +1053,7 @@ namespace mongo {
 //                              << 1)
                 replyBuilder_new->getBodyBuilder().append("result", "count: 12345");
                 auto response_new = replyBuilder_new->done();
-                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
+                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
                 return DbResponse{std::move(response_new)};
 
             }

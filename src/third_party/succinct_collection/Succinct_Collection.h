@@ -34,8 +34,8 @@ public:
     void insert_string(string& json_string);  //string containing json and batch size, return 1 on end of doc
     pair<size_t, size_t> get_size();    //return {succinct size, original size}
     void serialize_succinct();  //serialize succinct to succinct path directory
-    vector<string> find_query(vector<pair<string, string>>& attr_val_vec, int batch_size);  //find exact match, size<=batch_size
-    vector<string> find_next(int batch_size);   //get next batch_size query results
+    string find_query(vector<pair<string, string>>& attr_val_vec, int batch_size);  //find exact match, size<=batch_size
+    string find_next(int batch_size);   //get next batch_size query results
 };
 
 #endif //S_SUCCINCT_COLLECTION_H

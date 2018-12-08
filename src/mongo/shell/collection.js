@@ -260,7 +260,7 @@ DBCollection.prototype.buildSuccinct = function(query, fields, limit, skip, batc
         query = {};
     }
     query.$or = [{collection_count: collection_count}, {}];
-    batchSize = 2;
+    batchSize = collection_count;
     // query.collection_count = collection_count;
     var cursor = new DBQuery(this._mongo,
         this._db,
@@ -295,8 +295,8 @@ DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batch
     if (query === undefined) {
         query = {undef: 1};
     }
-    // print(tojson(query));
-    batchSize = 5;
+    print(tojson(query));
+    // batchSize = 5;
     // query.succinct = 1;
     query.$or = [{succinct: 1}, {}];
 
