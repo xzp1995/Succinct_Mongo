@@ -985,27 +985,31 @@ namespace mongo {
 
             auto request = rpc::opMsgRequestFromAnyProtocol(message);
             std::string req_str = request.toString();
-            std::cout << "========================= request_string: " << req_str << std::endl;
+//            std::cout << "========================= request_string: " << req_str << std::endl;
             std::string filter_value = getFilterValue(req_str);
             if (filter_value.find("succinct") != std::string::npos) {
-                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! findSuccinct identified" << std::endl;
+//                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! findSuccinct identified" << std::endl;
 
 
                 std::string collection_name = getFindValue(req_str);
-                cout << "map size: " << collection_map.size() << endl;
+//                cout << "map size: " << collection_map.size() << endl;
                 Succinct_Collection* sc_ptr = collection_map[collection_name];
                 auto size_res = sc_ptr->get_size();
-                cout << "size " << size_res.first << endl;
+//                cout << "size " << size_res.first << endl;
                 std::pair<string, string> query = getQuery(filter_value);
                 query.second = parseZero(query.second);
-                std::cout << "query: " << query.first << ", " << query.second << "; " <<  batch_map[collection_name] << std::endl;
+//                std::cout << "query: " << query.first << ", " << query.second << "; " <<  batch_map[collection_name] << std::endl;
 
                 vector<pair<string, string>> query_vec;
                 query_vec.push_back(query);
                 auto res = sc_ptr->find_query(query_vec, batch_map[collection_name]);
+                BSONArrayBuilder bab;
+                for (string s:res) {
+                    bab << BSONObj(fromjson(s));
+                }
                 //auto res_array = BSON_ARRAY();
                 //for (string s:res) res_array<<BSONObj(fromJson(s));
-                cout <<  "---------------------resp[ppp: " << res << endl;
+                //cout <<  "---------------------resp[ppp: " << res << endl;
                 //#for (auto s:res) cout<<s<<endl;
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
@@ -1022,7 +1026,7 @@ namespace mongo {
 //                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch"
 //                                                                              << BSON_ARRAY(BSON("_id" << BSON("$oid" << "5bf89313caf341ffe825faeb") << "x" << 1))
 //                                                                              << "id" << CursorId(0) << "ns" << "test.temp"));
-                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(fromjson(res)) << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << bab.arr() << "id" << CursorId(0) << "ns" << "test.temp"));
                 replyBuilder_new->getBodyBuilder().append("ok", 1);
                 replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
 
@@ -1035,7 +1039,7 @@ namespace mongo {
                 auto resp = rpc::makeReply(&resp_msg);
                 BSONObj resp_body = resp->getCommandReply();
 
-                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
+//                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
 
                 auto response_new = replyBuilder_new->done();
                 CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
@@ -1044,14 +1048,14 @@ namespace mongo {
                 auto resp_new = rpc::makeReply(&resp_msg_new);
                 BSONObj resp_body_new = resp_new->getCommandReply();
 
-                std::cout << "-----------------new response: " << resp_body_new.jsonString() << std::endl;
+//                std::cout << "-----------------new response: " << resp_body_new.jsonString() << std::endl;
 
                 return DbResponse{std::move(response_new)};
 
             }
-            std::cout << "=======###########======== filter_string: " << filter_value << std::endl;
+//            std::cout << "=======###########======== filter_string: " << filter_value << std::endl;
             if (filter_value.find("collection_count") != std::string::npos) {
-                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! buildSuccinct identified" << std::endl;
+//                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! buildSuccinct identified" << std::endl;
                 string col_count = "collection_count: ";
                 size_t left = filter_value.find("collection_count") + col_count.size();
                 size_t right = left;
@@ -1063,7 +1067,7 @@ namespace mongo {
                 }
 
                 int collect_count = std::stoi(filter_value.substr(left, right - left + 1));
-                std::cout << "collection_count: " << collect_count << std::endl;
+//                std::cout << "collection_count: " << collect_count << std::endl;
 
                 auto response = replyBuilder->done();
                 CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
@@ -1073,7 +1077,7 @@ namespace mongo {
                 auto resp = rpc::makeReply(&resp_msg);
                 BSONObj resp_body = resp->getCommandReply();
 
-                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
+//                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
 
                 std::string collection_name = getFindValue(req_str);
 //                std::cout << "@@@@@@@@@@@@@@@@@@@@@collection_name: " << collection_name << std::endl;
@@ -1121,7 +1125,7 @@ namespace mongo {
             auto resp = rpc::makeReply(&resp_msg);
             BSONObj resp_body = resp->getCommandReply();
 
-            std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
+//            std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
 
             // TODO exhaust
             return DbResponse{std::move(response)};

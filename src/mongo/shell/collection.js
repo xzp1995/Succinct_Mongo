@@ -217,7 +217,7 @@ DBCollection.prototype.find = function(query, fields, limit, skip, batchSize, op
     // print("+++++++++++batchsize: ");
     // print(tojson(batchSize));
     // print(batchSize);
-    print(tojson(query));
+    // print(tojson(query));
     var cursor = new DBQuery(this._mongo,
                              this._db,
                              this,
@@ -295,7 +295,7 @@ DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batch
     if (query === undefined) {
         query = {undef: 1};
     }
-    print(tojson(query));
+    // print(tojson(query));
     // batchSize = 5;
     // query.succinct = 1;
     query.$or = [{succinct: 1}, {}];
