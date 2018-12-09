@@ -4,6 +4,7 @@
 
 #include "json.hpp"
 #include "succinct_shard.h"
+#include <stdio.h>
 
 
 using json = nlohmann::json;
@@ -122,15 +123,19 @@ set<int64_t> Succinct_Collection::find_key(vector<pair<string, string>>& attr_va
         cout << "Succinct build unfinished!" << endl;
         return result;
     }
+    cout << "enter find key" << endl;
     set<int64_t> query_result, intersect;
     //check if all attributes are valid
     for (pair<string, string>& attr_val : attr_val_vec) {
+        cout << "find pair: " << attr_val.first << " " << attr_val.second << endl;
         if (attribute_delimiter_map.find(attr_val.first)==attribute_delimiter_map.end()) {
             return result;
         }
     }
+    cout << "try get succinct_ptr" << endl;
     auto succinct_ptr = (SuccinctShard*)succinct_fd;
     //process attributes
+    cout << "try get num keys" << endl;
     size_t num_keys = succinct_ptr->GetNumKeys()-1; //-1 since the first row is a "\n"
     for (int i=1; i<=num_keys; i++) result.insert(i);
     for (pair<string, string> attr_val : attr_val_vec) {
@@ -142,6 +147,7 @@ set<int64_t> Succinct_Collection::find_key(vector<pair<string, string>>& attr_va
         query_result.clear();
         intersect.clear();
     }
+    cout << "result size: " << result.size() << endl;
     return result;
 }
 
@@ -151,7 +157,9 @@ vector<string> Succinct_Collection::find_query(vector<pair<string, string>>& att
         vector<string> res;
         return res;
     }
+    cout << "enter find query" << endl;
     find_results = find_key(attr_val_vec);
+    cout << "end find key" << endl;
     find_cursor = find_results.begin();
     find_has_next = !find_results.empty();
     return find_next(batch_size);
@@ -182,7 +190,9 @@ pair<size_t, size_t> Succinct_Collection::get_size() {
         cout << "Succinct build unfinished!" << endl;
         return {0,0};
     }
+    std::cout << "enter get size" << std::endl;
     auto succinct_ptr = (SuccinctShard*)succinct_fd;
+    std::cout << "size: " << succinct_ptr->StorageSize() << std::endl;
     return {succinct_ptr->StorageSize(), succinct_ptr->GetOriginalSize()};
 }
 

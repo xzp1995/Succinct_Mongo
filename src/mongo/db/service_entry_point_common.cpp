@@ -859,7 +859,39 @@ namespace mongo {
             return res;
         }
 
+        std::pair<string, string> getQuery(string filter_value) {
+            std::pair<string, string> query;
+            std::string key, value;
+            size_t i = 2;
+            while (i < filter_value.size() && filter_value[i] != ':') {
+                key += filter_value[i];
+                ++i;
+            }
+            i += 2; // ": "
+            while (i < filter_value.size() && filter_value[i] != ',') {
+                value += filter_value[i];
+                ++i;
+            }
+
+            return std::make_pair(key, value);
+
+        }
+
+        std::string parseZero(std::string num) {
+            if (num.find('.') != std::string::npos) {
+                while(num.back() == '0') {
+                    num.pop_back();
+                }
+            }
+            if (num.back() == '.') {
+                num.pop_back();
+            }
+            return num;
+
+        }
+
         unordered_map<std::string, Succinct_Collection*> collection_map;
+        unordered_map<std::string, int> batch_map;
         DbResponse receivedCommands(OperationContext* opCtx,
                                     const Message& message,
                                     const ServiceEntryPointCommon::Hooks& behaviors) {
@@ -958,42 +990,59 @@ namespace mongo {
                 std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! findSuccinct identified" << std::endl;
 
 
-                string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
-                string c = "c";
-                Succinct_Collection sc(c, s, 5);
+                std::string collection_name = getFindValue(req_str);
+                cout << "map size: " << collection_map.size() << endl;
+                Succinct_Collection* sc_ptr = collection_map[collection_name];
+                auto size_res = sc_ptr->get_size();
+                cout << "size " << size_res.first << endl;
+                std::pair<string, string> query = getQuery(filter_value);
+                query.second = parseZero(query.second);
+                std::cout << "query: " << query.first << ", " << query.second << "; " <<  batch_map[collection_name] << std::endl;
 
-//                sc.get_size();
-//
-//                vector<pair<string, string>> query_vec;
-//                cout << sc.find_query(query_vec, 3) << endl;
-//                cout << sc.find_next(10) << endl;
-//                cout << endl;
-//
-//                query_vec.push_back({"name","\"x\""});
-//                cout << sc.find_query(query_vec, 1) << endl;
-//                cout << sc.find_next(1) << endl;
-//                cout << endl;
-//
-//                query_vec.push_back({"y",to_string(3)});
-//                cout << sc.find_query(query_vec, 10) << endl;
-
+                vector<pair<string, string>> query_vec;
+                query_vec.push_back(query);
+                vector<string> res = sc_ptr->find_query(query_vec, batch_map[collection_name]);
+                for (auto s:res) cout<<s<<endl;
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
+//                { "cursor" : { "firstBatch" : [ { "_id" : { "$oid" : "5bf89313caf341ffe825faeb" }, "x" : 1 },
+//                                                { "_id" : { "$oid" : "5bf89dd8817cd2d5901a5a2c" }, "x" : 1 },
+//                                                { "_id" : { "$oid" : "5bf89e8d68b39eb711ba414c" }, "x" : 1 },
+//                                                { "_id" : { "$oid" : "5bf8a099c09d159e764b53de" }, "x" : 1 },
+//                                                { "_id" : { "$oid" : "5bf8a43de61a35adcdc5c945" }, "x" : 1 } ],
+//                               "id" : { "$numberLong" : "0" }, "ns" : "test.temp" }, "ok" : 1 }
 
-
-
-
-//                replyBuilder->getBodyBuilder().resetToEmpty();
-//                replyBuilder->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
-//                                                                          << "\"test.temp\""
-//                                                                          << "firstBatch"
-//                                                                          << BSON_ARRAY(BSON("_id" << "1" << "y" << 23))));
+                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                replyBuilder_new->getBodyBuilder().resetToEmpty();
+                auto obj = fromjson(res[0]);
 //
-//                replyBuilder->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
-//                replyBuilder->getBodyBuilder().append("result", "count: 12345");
-//                auto response = replyBuilder->done();
-//                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
-//                return DbResponse{std::move(response)};
+//                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch"
+//                                                                              << BSON_ARRAY(BSON("_id" << BSON("$oid" << "5bf89313caf341ffe825faeb") << "x" << 1))
+//                                                                              << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(obj << obj1 << obj2) << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("ok", 1);
+
+
+                auto response = replyBuilder->done();
+                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
+
+
+                Message resp_msg = response;
+                auto resp = rpc::makeReply(&resp_msg);
+                BSONObj resp_body = resp->getCommandReply();
+
+                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
+
+                auto response_new = replyBuilder_new->done();
+                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+
+                Message resp_msg_new = response_new;
+                auto resp_new = rpc::makeReply(&resp_msg_new);
+                BSONObj resp_body_new = resp_new->getCommandReply();
+
+                std::cout << "-----------------new response: " << resp_body_new.jsonString() << std::endl;
+
+                return DbResponse{std::move(response_new)};
 
             }
             std::cout << "=======###########======== filter_string: " << filter_value << std::endl;
@@ -1031,8 +1080,9 @@ namespace mongo {
 //                std::cout << "@@@@@@@@@@@@ resp_body_str: " << resp_body_str << std::endl;
 //                std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@ s: " << s << std::endl;
 
-                Succinct_Collection S_C(collection_name, resp_body_str, collect_count);
-                collection_map[collection_name] = &S_C;
+                Succinct_Collection* sc_ptr = new Succinct_Collection(collection_name, resp_body_str, collect_count);
+                collection_map[collection_name] = sc_ptr;
+                batch_map[collection_name] = collect_count;
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
 //
 //                Succinct_Collection sc(c, s, 5);
@@ -1051,7 +1101,7 @@ namespace mongo {
 //                                           << BSON_ARRAY(BSON("_id" << 1) << BSON("_id" << 2)))
 //                              << "ok"
 //                              << 1)
-                replyBuilder_new->getBodyBuilder().append("result", "count: 12345");
+//                replyBuilder_new->getBodyBuilder().append("result", "count: 12345");
                 auto response_new = replyBuilder_new->done();
                 CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
                 return DbResponse{std::move(response_new)};

@@ -873,6 +873,8 @@ json.hpp
 /Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/json.hpp
 succinct_shard.h
 /Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/succinct_shard.h
+stdio.h
+-
 
 /Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/Succinct_Collection.h
 unordered_map
@@ -885,10 +887,4 @@ stack
 -
 set
 -
-
-/Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/main.cpp
-iostream
--
-Succinct_Collection.h
-/Users/zhipengxu/Desktop/FALL18/EECS584/project/mongo/src/third_party/succinct_collection/Succinct_Collection.h
 
