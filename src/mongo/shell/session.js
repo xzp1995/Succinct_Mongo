@@ -348,17 +348,26 @@ var {
                     res = clientFunction.apply(client, clientFunctionArguments);
                     // print("---------------res: ");
                     // var res_json = tojson(res);
+                    // print(res_json);
                     // var cursor_json = tojson(res["cursor"]);
-
-
+                    //
+                    //
                     // print("~~~~~~~~~~~~~~~cursor: ");
                     // print(cursor_json);
-                    // if (res["cursor"] != undefined) {
-                    //     var batch_json = tojson(res["cursor"]["firstBatch"]);
-                    //     print("***************firstBatch: ");
-                    //     print(batch_json);
-                    //
-                    // }
+                    if (res["cursor"] != undefined) {
+                        var batch_json = tojson(res["cursor"]["firstBatch"]);
+                        // print("***************firstBatch: ");
+                        // print(batch_json);
+                        if ("findSuccinct" in res) {
+                            var fb = res["cursor"]["firstBatch"][0];
+                            var new_fb = [];
+                            for (var elem in fb) {
+                                new_fb.push(fb[elem]);
+                            }
+                            res["cursor"]["firstBatch"] = new_fb;
+                        }
+
+                    }
                     // print(res_json["cursor"]["firstBatch"]);
                 } catch (e) {
                     if (!isNetworkError(e) || numRetries === 0) {

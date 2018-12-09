@@ -1,3 +1,0 @@
-/home/jasonxcp/Append/succinct-cpp/core/build/CMakeFiles/rebuild_cache.dir
-/home/jasonxcp/Append/succinct-cpp/core/build/CMakeFiles/edit_cache.dir
-/home/jasonxcp/Append/succinct-cpp/core/build/CMakeFiles/succinct.dir

@@ -94,7 +94,8 @@
 #include "mongo/db/query/cursor_response.h"
 #include "mongo/rpc/op_msg_rpc_impls.h"
 #include "mongo/unittest/unittest.h"
-#include "mongo/succinct_collection/Succinct_Collection.h"
+
+#include "third_party/succinct_collection/Succinct_Collection.h"
 
 namespace mongo {
 
@@ -1001,8 +1002,11 @@ namespace mongo {
 
                 vector<pair<string, string>> query_vec;
                 query_vec.push_back(query);
-                vector<string> res = sc_ptr->find_query(query_vec, batch_map[collection_name]);
-                for (auto s:res) cout<<s<<endl;
+                auto res = sc_ptr->find_query(query_vec, batch_map[collection_name]);
+                //auto res_array = BSON_ARRAY();
+                //for (string s:res) res_array<<BSONObj(fromJson(s));
+                cout <<  "---------------------resp[ppp: " << res << endl;
+                //#for (auto s:res) cout<<s<<endl;
 
 //                replyBuilder->getBodyBuilder().append("cursor", "hello");
 //                { "cursor" : { "firstBatch" : [ { "_id" : { "$oid" : "5bf89313caf341ffe825faeb" }, "x" : 1 },
@@ -1014,13 +1018,13 @@ namespace mongo {
 
                 auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
                 replyBuilder_new->getBodyBuilder().resetToEmpty();
-                auto obj = fromjson(res[0]);
 //
 //                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch"
 //                                                                              << BSON_ARRAY(BSON("_id" << BSON("$oid" << "5bf89313caf341ffe825faeb") << "x" << 1))
 //                                                                              << "id" << CursorId(0) << "ns" << "test.temp"));
-                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(obj << obj1 << obj2) << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(fromjson(res)) << "id" << CursorId(0) << "ns" << "test.temp"));
                 replyBuilder_new->getBodyBuilder().append("ok", 1);
+                replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
 
 
                 auto response = replyBuilder->done();
