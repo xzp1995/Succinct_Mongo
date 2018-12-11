@@ -290,14 +290,50 @@ DBCollection.prototype.buildSuccinct = function(query, fields, limit, skip, batc
 
 };
 
-DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batchSize, options) {
+DBCollection.prototype.findSuccinct = function(query, batchSize, fields, limit, skip, options) {
     if (query === undefined) {
         query = {undef: 1};
     }
     // print(tojson(query));
     // batchSize = 5;
     // query.succinct = 1;
-    query.$or = [{succinct: 1}, {}];
+    query.$or = [{succinct: 1}, {batch: batchSize}, {}];
+
+    // query.$or = []
+    var cursor = new DBQuery(this._mongo,
+        this._db,
+        this,
+        this._fullName,
+        this._massageObject(query),
+        fields,
+        limit,
+        skip,
+        batchSize,
+        options || this.getQueryOptions());
+
+    {
+        const session = this.getDB().getSession();
+
+        const readPreference = session._serverSession.client.getReadPreference(session);
+        if (readPreference !== null) {
+            cursor.readPref(readPreference.mode, readPreference.tags);
+        }
+
+        const readConcern = session._serverSession.client.getReadConcern(session);
+        if (readConcern !== null) {
+            cursor.readConcern(readConcern.level);
+        }
+    }
+
+    return cursor;
+};
+
+DBCollection.prototype.getNext = function(batchSize, fields, limit, skip, options) {
+    query = {getNext: 1};
+    // print(tojson(query));
+    // batchSize = 5;
+    // query.succinct = 1;
+    query.$or = [{succinct: 2}, {batch: batchSize}, {}];
 
     // query.$or = []
     var cursor = new DBQuery(this._mongo,

@@ -879,6 +879,24 @@ namespace mongo {
 
         }
 
+        int getBatchSize(std::string req_str) {
+            std::string res;
+            size_t filter_pos = req_str.find("batchSize");
+            if(filter_pos == std::string::npos) return -1;
+            if (filter_pos != std::string::npos) {
+                size_t i = filter_pos + 11;
+                while (i < req_str.size() && req_str[i] != ',') {
+                    res += req_str[i];
+                    ++i;
+                }
+            }
+            res = parseZero(res);
+            std::istringstream iss(res);
+            float f;
+            iss >> noskipws >> f;
+            return (int)f;
+        }
+
         std::vector<std::pair<string, string>> parseQuery(string filter_value) {
             std::vector<std::pair<string, string>> query_vec;
             std::string key, value;
@@ -917,6 +935,109 @@ namespace mongo {
                                     const Message& message,
                                     const ServiceEntryPointCommon::Hooks& behaviors) {
 //    std::cout << "######################## receivedCommands" << std::endl;
+
+
+            auto request = rpc::opMsgRequestFromAnyProtocol(message);
+            std::string req_str = request.toString();
+            std::string filter_value = getFilterValue(req_str);
+
+            if (filter_value.find("succinct") != std::string::npos) { //findSuccinct
+
+                std::string collection_name = getFindValue(req_str);
+
+                if (collection_map.find(collection_name) == collection_map.end()) {
+                    auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                    replyBuilder_new->getBodyBuilder().resetToEmpty();
+                    replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "ERROR: " << "Didn't buildSuccinct on this collection")) << "id" << CursorId(0) << "ns" << "test.temp"));
+                    replyBuilder_new->getBodyBuilder().append("ok", 1);
+                    replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
+                    auto response_new = replyBuilder_new->done();
+                    CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+
+                    Message resp_msg_new = response_new;
+                    auto resp_new = rpc::makeReply(&resp_msg_new);
+                    BSONObj resp_body_new = resp_new->getCommandReply();
+
+
+                    return DbResponse{std::move(response_new)};
+                }
+
+                int batchSize = getBatchSize(req_str);
+                if (batchSize == -1) {
+                    batchSize = batch_map[collection_name];
+                }
+
+                Succinct_Collection* sc_ptr = collection_map[collection_name];
+
+                vector<pair<string, string>> query_vec = parseQuery(filter_value);
+
+                vector<string> res;
+                if (filter_value.find("getNext") == std::string::npos) {
+                    res = sc_ptr->find_query(query_vec, batchSize);
+                }
+                else {
+                    res = sc_ptr->find_next(batchSize);
+                }
+
+                BSONArrayBuilder bab;
+                for (string s:res) {
+                    bab << BSONObj(fromjson(s));
+                }
+
+                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                replyBuilder_new->getBodyBuilder().resetToEmpty();
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << bab.arr() << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("ok", 1);
+                replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
+
+
+
+                auto response_new = replyBuilder_new->done();
+                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+
+                Message resp_msg_new = response_new;
+                auto resp_new = rpc::makeReply(&resp_msg_new);
+                BSONObj resp_body_new = resp_new->getCommandReply();
+
+
+                return DbResponse{std::move(response_new)};
+
+            }
+            if (filter_value.find("deleteSuccinct") != std::string::npos) {
+
+                std::string collection_name = getFindValue(req_str);
+                if (collection_map.find(collection_name) == collection_map.end()) {
+                    auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                    replyBuilder_new->getBodyBuilder().resetToEmpty();
+                    replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "ERROR: " << "Didn't buildSuccinct on this collection")) << "id" << CursorId(0) << "ns" << "test.temp"));
+                    replyBuilder_new->getBodyBuilder().append("ok", 1);
+                    replyBuilder_new->getBodyBuilder().append("deleteSuccinct", 1);
+                    auto response_new = replyBuilder_new->done();
+                    CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+
+                    Message resp_msg_new = response_new;
+                    auto resp_new = rpc::makeReply(&resp_msg_new);
+                    BSONObj resp_body_new = resp_new->getCommandReply();
+
+                    return DbResponse{std::move(response_new)};
+                }
+
+                Succinct_Collection* sc_ptr = collection_map[collection_name];
+                delete sc_ptr;
+                collection_map.erase(collection_name);
+                batch_map.erase(collection_name);
+                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                replyBuilder_new->getBodyBuilder().resetToEmpty();
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "delete Succinct Collection: " << "done")) << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("ok", 1.0);
+
+                auto response_new = replyBuilder_new->done();
+                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+                return DbResponse{std::move(response_new)};
+
+            }
+
+
             auto replyBuilder = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
             [&] {
                 OpMsgRequest request;
@@ -997,59 +1118,6 @@ namespace mongo {
                 return {};  // Don't reply.
             }
 
-            auto request = rpc::opMsgRequestFromAnyProtocol(message);
-            std::string req_str = request.toString();
-            std::string filter_value = getFilterValue(req_str);
-
-            if (filter_value.find("succinct") != std::string::npos) {
-
-                std::string collection_name = getFindValue(req_str);
-
-                if (collection_map.find(collection_name) == collection_map.end()) {
-                    auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
-                    replyBuilder_new->getBodyBuilder().resetToEmpty();
-                    replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "ERROR: " << "Didn't buildSuccinct on this collection")) << "id" << CursorId(0) << "ns" << "test.temp"));
-                    replyBuilder_new->getBodyBuilder().append("ok", 1);
-                    replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
-                    auto response_new = replyBuilder_new->done();
-                    CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
-
-                    Message resp_msg_new = response_new;
-                    auto resp_new = rpc::makeReply(&resp_msg_new);
-                    BSONObj resp_body_new = resp_new->getCommandReply();
-
-
-                    return DbResponse{std::move(response_new)};
-                }
-
-                Succinct_Collection* sc_ptr = collection_map[collection_name];
-
-                vector<pair<string, string>> query_vec = parseQuery(filter_value);
-                auto res = sc_ptr->find_query(query_vec, batch_map[collection_name]);
-                BSONArrayBuilder bab;
-                for (string s:res) {
-                    bab << BSONObj(fromjson(s));
-                }
-
-                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
-                replyBuilder_new->getBodyBuilder().resetToEmpty();
-                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << bab.arr() << "id" << CursorId(0) << "ns" << "test.temp"));
-                replyBuilder_new->getBodyBuilder().append("ok", 1);
-                replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
-
-
-
-                auto response_new = replyBuilder_new->done();
-                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
-
-                Message resp_msg_new = response_new;
-                auto resp_new = rpc::makeReply(&resp_msg_new);
-                BSONObj resp_body_new = resp_new->getCommandReply();
-
-
-                return DbResponse{std::move(response_new)};
-
-            }
             if (filter_value.find("collection_count") != std::string::npos) { //buildSuccinct
                 string col_count = "collection_count: ";
                 size_t left = filter_value.find("collection_count") + col_count.size();
@@ -1083,9 +1151,9 @@ namespace mongo {
                 auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
                 replyBuilder_new->getBodyBuilder().resetToEmpty();
                 replyBuilder_new->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
-                                                                          << "\"test.temp\""
-                                                                          << "firstBatch"
-                                                                          << BSON_ARRAY(BSON("build Succinct collection"  << "success"))));
+                                                                              << "\"test.temp\""
+                                                                              << "firstBatch"
+                                                                              << BSON_ARRAY(BSON("build Succinct collection"  << "success"))));
 
                 replyBuilder_new->getBodyBuilder().append("ok", 1.0);
                 auto response_new = replyBuilder_new->done();
@@ -1093,40 +1161,6 @@ namespace mongo {
                 return DbResponse{std::move(response_new)};
 
             }
-            if (filter_value.find("deleteSuccinct") != std::string::npos) {
-
-                std::string collection_name = getFindValue(req_str);
-                if (collection_map.find(collection_name) == collection_map.end()) {
-                    auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
-                    replyBuilder_new->getBodyBuilder().resetToEmpty();
-                    replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "ERROR: " << "Didn't buildSuccinct on this collection")) << "id" << CursorId(0) << "ns" << "test.temp"));
-                    replyBuilder_new->getBodyBuilder().append("ok", 1);
-                    replyBuilder_new->getBodyBuilder().append("deleteSuccinct", 1);
-                    auto response_new = replyBuilder_new->done();
-                    CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
-
-                    Message resp_msg_new = response_new;
-                    auto resp_new = rpc::makeReply(&resp_msg_new);
-                    BSONObj resp_body_new = resp_new->getCommandReply();
-
-                    return DbResponse{std::move(response_new)};
-                }
-
-                Succinct_Collection* sc_ptr = collection_map[collection_name];
-                delete sc_ptr;
-                collection_map.erase(collection_name);
-                batch_map.erase(collection_name);
-                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
-                replyBuilder_new->getBodyBuilder().resetToEmpty();
-                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "delete Succinct Collection: " << "done")) << "id" << CursorId(0) << "ns" << "test.temp"));
-                replyBuilder_new->getBodyBuilder().append("ok", 1.0);
-
-                auto response_new = replyBuilder_new->done();
-                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
-                return DbResponse{std::move(response_new)};
-
-            }
-
 
             auto response = replyBuilder->done();
             CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
