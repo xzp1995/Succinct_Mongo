@@ -831,7 +831,6 @@ namespace mongo {
             curop->markCommand_inlock();
             curop->setNS_inlock(nss.ns());
         }
-//========================= request_string: { find: "temp", filter: { x: 1.0, succinct: 1.0 }, lsid: { id: UUID("547f3cf1-72ef-4d2f-9607-f30be9d069e7") }, $db: "test" }
 
         std::string getFilterValue(std::string req_str) {
             std::string res;
@@ -860,22 +859,11 @@ namespace mongo {
             return res;
         }
 
-        std::pair<string, string> getQuery(string filter_value) {
-            std::pair<string, string> query;
-            std::string key, value;
-            size_t i = 2;
-            while (i < filter_value.size() && filter_value[i] != ':') {
-                key += filter_value[i];
-                ++i;
-            }
-            i += 2; // ": "
-            while (i < filter_value.size() && filter_value[i] != ',') {
-                value += filter_value[i];
-                ++i;
-            }
-
-            return std::make_pair(key, value);
-
+        bool isFloat( std::string myString ) {
+            std::istringstream iss(myString);
+            float f;
+            iss >> noskipws >> f;
+            return iss.eof() && !iss.fail();
         }
 
         std::string parseZero(std::string num) {
@@ -891,6 +879,38 @@ namespace mongo {
 
         }
 
+        std::vector<std::pair<string, string>> parseQuery(string filter_value) {
+            std::vector<std::pair<string, string>> query_vec;
+            std::string key, value;
+            size_t i = 2;
+
+            while (i < filter_value.size() && filter_value[i] != '$') {
+                while (i < filter_value.size() && filter_value[i] != ':') {
+                    key += filter_value[i];
+                    ++i;
+                }
+                if (key == "undef") {
+                    std::vector<std::pair<string, string>> query_vec;
+                    return query_vec;
+                }
+                i += 2; // ": "
+                while (i < filter_value.size() && filter_value[i] != ',') {
+                    value += filter_value[i];
+                    ++i;
+                }
+                if(isFloat(value)) {
+                    value = parseZero(value);
+                }
+                query_vec.push_back(std::make_pair(key, value));
+                i += 2; // ", "
+                key = "";
+                value = "";
+            }
+
+            return query_vec;
+
+        }
+
         unordered_map<std::string, Succinct_Collection*> collection_map;
         unordered_map<std::string, int> batch_map;
         DbResponse receivedCommands(OperationContext* opCtx,
@@ -898,10 +918,6 @@ namespace mongo {
                                     const ServiceEntryPointCommon::Hooks& behaviors) {
 //    std::cout << "######################## receivedCommands" << std::endl;
             auto replyBuilder = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
-//            string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
-//            string c = "c";
-//            bool finished;
-//            Succinct_Collection sc(c, s, finished);
             [&] {
                 OpMsgRequest request;
                 try {  // Parse.
@@ -947,8 +963,6 @@ namespace mongo {
 
                     LOG(2) << "run command " << request.getDatabase() << ".$cmd" << ' '
                            << redact(ServiceEntryPointCommon::getRedactedCopyForLogging(c, request.body));
-//            std::cout << " run command " << request.getDatabase() << ".$cmd" << ' '
-//                   << redact(ServiceEntryPointCommon::getRedactedCopyForLogging(c, request.body)) << std::endl;
 
 
                     {
@@ -985,61 +999,45 @@ namespace mongo {
 
             auto request = rpc::opMsgRequestFromAnyProtocol(message);
             std::string req_str = request.toString();
-//            std::cout << "========================= request_string: " << req_str << std::endl;
             std::string filter_value = getFilterValue(req_str);
-            if (filter_value.find("succinct") != std::string::npos) {
-//                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! findSuccinct identified" << std::endl;
 
+            if (filter_value.find("succinct") != std::string::npos) {
 
                 std::string collection_name = getFindValue(req_str);
-//                cout << "map size: " << collection_map.size() << endl;
-                Succinct_Collection* sc_ptr = collection_map[collection_name];
-                auto size_res = sc_ptr->get_size();
-//                cout << "size " << size_res.first << endl;
-                std::pair<string, string> query = getQuery(filter_value);
-                query.second = parseZero(query.second);
-//                std::cout << "query: " << query.first << ", " << query.second << "; " <<  batch_map[collection_name] << std::endl;
 
-                vector<pair<string, string>> query_vec;
-                query_vec.push_back(query);
+                if (collection_map.find(collection_name) == collection_map.end()) {
+                    auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                    replyBuilder_new->getBodyBuilder().resetToEmpty();
+                    replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "ERROR: " << "Didn't buildSuccinct on this collection")) << "id" << CursorId(0) << "ns" << "test.temp"));
+                    replyBuilder_new->getBodyBuilder().append("ok", 1);
+                    replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
+                    auto response_new = replyBuilder_new->done();
+                    CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+
+                    Message resp_msg_new = response_new;
+                    auto resp_new = rpc::makeReply(&resp_msg_new);
+                    BSONObj resp_body_new = resp_new->getCommandReply();
+
+
+                    return DbResponse{std::move(response_new)};
+                }
+
+                Succinct_Collection* sc_ptr = collection_map[collection_name];
+
+                vector<pair<string, string>> query_vec = parseQuery(filter_value);
                 auto res = sc_ptr->find_query(query_vec, batch_map[collection_name]);
                 BSONArrayBuilder bab;
                 for (string s:res) {
                     bab << BSONObj(fromjson(s));
                 }
-                //auto res_array = BSON_ARRAY();
-                //for (string s:res) res_array<<BSONObj(fromJson(s));
-                //cout <<  "---------------------resp[ppp: " << res << endl;
-                //#for (auto s:res) cout<<s<<endl;
-
-//                replyBuilder->getBodyBuilder().append("cursor", "hello");
-//                { "cursor" : { "firstBatch" : [ { "_id" : { "$oid" : "5bf89313caf341ffe825faeb" }, "x" : 1 },
-//                                                { "_id" : { "$oid" : "5bf89dd8817cd2d5901a5a2c" }, "x" : 1 },
-//                                                { "_id" : { "$oid" : "5bf89e8d68b39eb711ba414c" }, "x" : 1 },
-//                                                { "_id" : { "$oid" : "5bf8a099c09d159e764b53de" }, "x" : 1 },
-//                                                { "_id" : { "$oid" : "5bf8a43de61a35adcdc5c945" }, "x" : 1 } ],
-//                               "id" : { "$numberLong" : "0" }, "ns" : "test.temp" }, "ok" : 1 }
 
                 auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
                 replyBuilder_new->getBodyBuilder().resetToEmpty();
-//
-//                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch"
-//                                                                              << BSON_ARRAY(BSON("_id" << BSON("$oid" << "5bf89313caf341ffe825faeb") << "x" << 1))
-//                                                                              << "id" << CursorId(0) << "ns" << "test.temp"));
                 replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << bab.arr() << "id" << CursorId(0) << "ns" << "test.temp"));
                 replyBuilder_new->getBodyBuilder().append("ok", 1);
                 replyBuilder_new->getBodyBuilder().append("findSuccinct", 1);
 
 
-                auto response = replyBuilder->done();
-                CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
-
-
-                Message resp_msg = response;
-                auto resp = rpc::makeReply(&resp_msg);
-                BSONObj resp_body = resp->getCommandReply();
-
-//                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
 
                 auto response_new = replyBuilder_new->done();
                 CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
@@ -1048,14 +1046,11 @@ namespace mongo {
                 auto resp_new = rpc::makeReply(&resp_msg_new);
                 BSONObj resp_body_new = resp_new->getCommandReply();
 
-//                std::cout << "-----------------new response: " << resp_body_new.jsonString() << std::endl;
 
                 return DbResponse{std::move(response_new)};
 
             }
-//            std::cout << "=======###########======== filter_string: " << filter_value << std::endl;
-            if (filter_value.find("collection_count") != std::string::npos) {
-//                std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!! buildSuccinct identified" << std::endl;
+            if (filter_value.find("collection_count") != std::string::npos) { //buildSuccinct
                 string col_count = "collection_count: ";
                 size_t left = filter_value.find("collection_count") + col_count.size();
                 size_t right = left;
@@ -1067,7 +1062,6 @@ namespace mongo {
                 }
 
                 int collect_count = std::stoi(filter_value.substr(left, right - left + 1));
-//                std::cout << "collection_count: " << collect_count << std::endl;
 
                 auto response = replyBuilder->done();
                 CurOp::get(opCtx)->debug().responseLength = response.header().dataLen();
@@ -1077,39 +1071,56 @@ namespace mongo {
                 auto resp = rpc::makeReply(&resp_msg);
                 BSONObj resp_body = resp->getCommandReply();
 
-//                std::cout << "---------------------response: " << resp_body.jsonString() << std::endl;
 
                 std::string collection_name = getFindValue(req_str);
-//                std::cout << "@@@@@@@@@@@@@@@@@@@@@collection_name: " << collection_name << std::endl;
                 std::string resp_body_str = resp_body.jsonString();
-//                std::cout << "@@@@@@@@@@@@@@@collection name: " << collection_name << " resp_body_str: " << resp_body_str << " collect_count: " << collect_count << std::endl;
-//                string s = "{ \"cursor\" : { \"firstBatch\" : [ { \"_id\" : { \"$oid\" : \"5bfdd36dbd83160ff3a19d49\" }, \"y\" : 3, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd3fff67d1860e21f143c\" } }, { \"_id\" : { \"$oid\" : \"5bfdd406f67d1860e21f143d\" }, \"name\" : \"x\" }, { \"_id\" : { \"$oid\" : \"5bfdd40ff67d1860e21f143e\" }, \"name\" : \"y\" }, { \"_id\" : { \"$oid\" : \"5bfdd410f67d1860e21f143f\" }, \"name\" : \"z\" } ], \"id\" : { \"$numberLong\" : \"0\" }, \"ns\" : \"db.x\" }, \"ok\" : 1 }";
-
-//                std::cout << "@@@@@@@@@@@@ resp_body_str: " << resp_body_str << std::endl;
-//                std::cout << "@@@@@@@@@@@@@@@@@@@@@@@@ s: " << s << std::endl;
 
                 Succinct_Collection* sc_ptr = new Succinct_Collection(collection_name, resp_body_str, collect_count);
                 collection_map[collection_name] = sc_ptr;
                 batch_map[collection_name] = collect_count;
-//                replyBuilder->getBodyBuilder().append("cursor", "hello");
-//
-//                Succinct_Collection sc(c, s, 5);
+
 
                 auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
                 replyBuilder_new->getBodyBuilder().resetToEmpty();
                 replyBuilder_new->getBodyBuilder().append("cursor", BSON("id" << CursorId(123) << "ns"
                                                                           << "\"test.temp\""
                                                                           << "firstBatch"
-                                                                          << BSON_ARRAY(BSON("building collection: " << "done"))));
+                                                                          << BSON_ARRAY(BSON("build Succinct collection"  << "success"))));
 
-                replyBuilder_new->getBodyBuilder().append("ok", 1.0); //replyBuilder->getBodyBuilder() is BSONObjBuilder
-//                BSON("cursor" << BSON("id" << CursorId(123) << "ns"
-//                                           << "db.coll"
-//                                           << "firstBatch"
-//                                           << BSON_ARRAY(BSON("_id" << 1) << BSON("_id" << 2)))
-//                              << "ok"
-//                              << 1)
-//                replyBuilder_new->getBodyBuilder().append("result", "count: 12345");
+                replyBuilder_new->getBodyBuilder().append("ok", 1.0);
+                auto response_new = replyBuilder_new->done();
+                CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+                return DbResponse{std::move(response_new)};
+
+            }
+            if (filter_value.find("deleteSuccinct") != std::string::npos) {
+
+                std::string collection_name = getFindValue(req_str);
+                if (collection_map.find(collection_name) == collection_map.end()) {
+                    auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                    replyBuilder_new->getBodyBuilder().resetToEmpty();
+                    replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "ERROR: " << "Didn't buildSuccinct on this collection")) << "id" << CursorId(0) << "ns" << "test.temp"));
+                    replyBuilder_new->getBodyBuilder().append("ok", 1);
+                    replyBuilder_new->getBodyBuilder().append("deleteSuccinct", 1);
+                    auto response_new = replyBuilder_new->done();
+                    CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
+
+                    Message resp_msg_new = response_new;
+                    auto resp_new = rpc::makeReply(&resp_msg_new);
+                    BSONObj resp_body_new = resp_new->getCommandReply();
+
+                    return DbResponse{std::move(response_new)};
+                }
+
+                Succinct_Collection* sc_ptr = collection_map[collection_name];
+                delete sc_ptr;
+                collection_map.erase(collection_name);
+                batch_map.erase(collection_name);
+                auto replyBuilder_new = rpc::makeReplyBuilder(rpc::protocolForMessage(message));
+                replyBuilder_new->getBodyBuilder().resetToEmpty();
+                replyBuilder_new->getBodyBuilder().append("cursor", BSON("firstBatch" << BSON_ARRAY(BSON( "delete Succinct Collection: " << "done")) << "id" << CursorId(0) << "ns" << "test.temp"));
+                replyBuilder_new->getBodyBuilder().append("ok", 1.0);
+
                 auto response_new = replyBuilder_new->done();
                 CurOp::get(opCtx)->debug().responseLength = response_new.header().dataLen();
                 return DbResponse{std::move(response_new)};

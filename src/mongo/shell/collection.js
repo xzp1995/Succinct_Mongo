@@ -274,7 +274,6 @@ DBCollection.prototype.buildSuccinct = function(query, fields, limit, skip, batc
         options || this.getQueryOptions());
 
     {
-        print("buildSuccinct called");
         const session = this.getDB().getSession();
 
         const readPreference = session._serverSession.client.getReadPreference(session);
@@ -313,7 +312,6 @@ DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batch
         options || this.getQueryOptions());
 
     {
-        print("findSuccinct called");
         const session = this.getDB().getSession();
 
         const readPreference = session._serverSession.client.getReadPreference(session);
@@ -330,7 +328,13 @@ DBCollection.prototype.findSuccinct = function(query, fields, limit, skip, batch
     return cursor;
 };
 
-DBCollection.prototype.findabc = function(query, fields, limit, skip, batchSize, options) {
+
+DBCollection.prototype.deleteSuccinct = function(query, fields, limit, skip, batchSize, options) {
+
+    if (query === undefined) {
+        query = {};
+    }
+    query.$or = [{deleteSuccinct: 1}, {}];
     var cursor = new DBQuery(this._mongo,
         this._db,
         this,
@@ -343,7 +347,6 @@ DBCollection.prototype.findabc = function(query, fields, limit, skip, batchSize,
         options || this.getQueryOptions());
 
     {
-        print("findabc called");
         const session = this.getDB().getSession();
 
         const readPreference = session._serverSession.client.getReadPreference(session);
@@ -356,9 +359,10 @@ DBCollection.prototype.findabc = function(query, fields, limit, skip, batchSize,
             cursor.readConcern(readConcern.level);
         }
     }
-
     return cursor;
+
 };
+
 
 DBCollection.prototype.findOne = function(query, fields, options, readConcern, collation) {
     var cursor = this.find(query, fields, -1 /* limit */, 0 /* skip*/, 0 /* batchSize */, options);

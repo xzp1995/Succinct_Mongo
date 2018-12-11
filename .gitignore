@@ -74,9 +74,9 @@ scratch
 # binaries
 /docgen
 /loadgen
-/mongo
+# /mongo
 /mongobridge
-/mongod
+# /mongod
 /mongoed
 /mongogrid
 /mongoperf
