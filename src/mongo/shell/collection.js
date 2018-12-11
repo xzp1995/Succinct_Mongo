@@ -328,7 +328,7 @@ DBCollection.prototype.findSuccinct = function(query, batchSize, fields, limit, 
     return cursor;
 };
 
-DBCollection.prototype.getNext = function(batchSize, fields, limit, skip, options) {
+DBCollection.prototype.SuccinctGetNext = function(batchSize, fields, limit, skip, options) {
     query = {getNext: 1};
     // print(tojson(query));
     // batchSize = 5;
@@ -365,7 +365,7 @@ DBCollection.prototype.getNext = function(batchSize, fields, limit, skip, option
 };
 
 
-DBCollection.prototype.deleteSuccinct = function(query, fields, limit, skip, batchSize, options) {
+DBCollection.prototype.removeSuccinct = function(query, fields, limit, skip, batchSize, options) {
 
     if (query === undefined) {
         query = {};

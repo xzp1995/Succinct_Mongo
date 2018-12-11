@@ -904,14 +904,20 @@ namespace mongo {
 
             while (i < filter_value.size() && filter_value[i] != '$') {
                 while (i < filter_value.size() && filter_value[i] != ':') {
-                    key += filter_value[i];
+                    if(filter_value[i] != ' ') {
+                        key += filter_value[i];
+                    }
                     ++i;
                 }
                 if (key == "undef") {
                     std::vector<std::pair<string, string>> query_vec;
                     return query_vec;
                 }
-                i += 2; // ": "
+                i++;
+                while (filter_value[i] == ' ') {
+                    i++;
+                }
+//                i += 2; // ": "
                 while (i < filter_value.size() && filter_value[i] != ',') {
                     value += filter_value[i];
                     ++i;

@@ -345,10 +345,17 @@ var {
                 let res;
 
                 try {
+                    var sendTime = (new Date()).getTime();
                     res = clientFunction.apply(client, clientFunctionArguments);
+                    var receiveTime = (new Date()).getTime();
+                    var responseTime = receiveTime - sendTime;
+
                     // print("---------------res: ");
                     // var res_json = tojson(res);
                     // print(res_json);
+
+                    // print("ResponseTime: ");
+                    // print(responseTime);
                     // var cursor_json = tojson(res["cursor"]);
                     //
                     //
